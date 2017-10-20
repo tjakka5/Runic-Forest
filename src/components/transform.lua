@@ -9,14 +9,6 @@ function Transform:initialize(position, rotation)
    self.parent = nil
 end
 
-function Transform:setPosition(position)
-   self.position:set(position)
-end
-
-function Transform:setRotation(phi)
-   self.rotation = phi
-end
-
 function Transform:getWorldPosition()
    if self.parent then
       local newPosition = self.position:rotated(self.parent.rotation)

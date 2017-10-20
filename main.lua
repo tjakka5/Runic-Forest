@@ -36,14 +36,17 @@ local MouseMoved    = Component.load({"mouseMoved"})
 local WheelMoved    = Component.load({"wheelMoved"})
 
 -- Systems
-local ParentTransformSyncer = require("src.systems.parentTransformSyncer")()
-local DebugRenderer         = require("src.systems.debugRenderer")()
-local AxisAlignedPhysics    = require("src.systems.axisAlignedPhysics")()
+local ParentTransformSyncer   = require("src.systems.parentTransformSyncer")()
+local DebugRenderer           = require("src.systems.debugRenderer")()
+local AxisAlignedWorld        = require("src.systems.axisAlignedWorld")()
+local AxisAlignedBodyRenderer = require("src.systems.axisAlignedBodyRenderer")()
 
 -- Engines
 local GameEngine = require("src.engines.gameEngine")
 
 local Dev = DeveloperBuild and require("dev")
+
+DEBUG_RUNNING = false
 
 function love.load()
    love.graphics.setBackgroundColor(225, 225, 225)
@@ -52,21 +55,35 @@ function love.load()
 
    myEntity = Entity()
    local x = love.graphics.getWidth()  / 2
-   local y = love.graphics.getHeight() / 2
+   local y = love.graphics.getHeight() / 4
    myEntity:add(Transform(Vector(x, y), 0))
-   myEntity:add(AxisAlignedBody(Vector(0, 0), Vector(50, 50), 0, 1, nil))
+   myEntity:add(AxisAlignedBody(Vector(0, 0), Vector(0, 0), Vector(50, 50), 250, 1))
 
    GameEngine:addEntity(myEntity)
 
+   floor = Entity()
+   floor:add(Transform(Vector(640, 600), 0))
+   floor:add(AxisAlignedBody(Vector(0, 0), Vector(0, 0), Vector(400, 5), 0, 0))
+
+   GameEngine:addEntity(floor)
+
    GameEngine:addSystem(ParentTransformSyncer)
+   GameEngine:addSystem(AxisAlignedWorld)
+
    GameEngine:addSystem(DebugRenderer)
-   GameEngine:addSystem(AxisAlignedPhysics)
+   GameEngine:addSystem(AxisAlignedBodyRenderer)
 end
 
 function love.update(dt)
-   GameEngine:update(dt)
+   if DEBUG_RUNNING then
+      GameEngine:update(dt)
 
-   if Dev then Dev.update(dt) end
+      if love.keyboard.isDown("d") then
+         myEntity:get("axisAlignedBody"):applyForce(Vector(500, 0) * dt)
+      end
+
+      if Dev then Dev.update(dt) end
+   end
 end
 
 function love.draw()
@@ -92,6 +109,10 @@ function love.keypressed(key, scancode)
 
    if not (Dev and Dev.wantsCaptureMouse()) then
       GameEngine.eventManager:fireEvent(KeyPressed(key, scancode, isRepeat))
+
+      if key == "t" and love.keyboard.isDown("lctrl") then
+         DEBUG_RUNNING = not DEBUG_RUNNING
+      end
 
       if key == "q" and love.keyboard.isDown("lctrl") then
          love.event.quit()
